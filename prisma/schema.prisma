@@ -1,0 +1,220 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+///////////////////////////////////////
+// ENUMS
+///////////////////////////////////////
+
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum OrderStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED_NO_DEPOSIT
+  SECURED
+  CANCELLED
+  FAILED
+}
+
+enum ConfirmationStatus {
+  PENDING
+  SENT
+  CLICKED
+  CONFIRMED
+  EXPIRED
+}
+
+enum Channel {
+  WHATSAPP
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum PaymentStatus {
+  PENDING
+  INITIATED
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum ActorType {
+  MERCHANT
+  SYSTEM
+}
+
+///////////////////////////////////////
+// MODELS
+///////////////////////////////////////
+
+// Compte marchand B2B
+model Merchant {
+  id           String            @id @default(uuid())
+  businessName String
+  email        String            @unique
+  passwordHash String
+  phone        String?
+  status       MerchantStatus    @default(ACTIVE)
+
+  settings     MerchantSettings?
+  orders       Order[]
+  messageLogs  MessageLog[]
+  auditLogs    AuditLog[]
+
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+// Configuration du marchand (API keys, montants, etc.)
+model MerchantSettings {
+  id                     String   @id @default(uuid())
+  merchantId             String   @unique
+  merchant               Merchant @relation(fields: [merchantId], references: [id])
+
+  whatsappPhoneNumberId  String?  // ID du numéro WhatsApp Business
+  whatsappAccessToken    String?  // idéalement chiffré côté app
+  paytechMerchantId      String?
+  paytechApiKey          String?
+
+  currency               String   @default("MAD")
+  defaultDepositAmount   Decimal  @default(5.00)
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+// Commandes COD à sécuriser
+model Order {
+  id               String             @id @default(uuid())
+  merchantId       String
+  merchant         Merchant           @relation(fields: [merchantId], references: [id])
+
+  externalOrderId  String?            // ID venant du store, optionnel
+  customerName     String?
+  customerPhone    String?            // à anonymiser plus tard si besoin
+  customerAddress  String?
+
+  totalAmount      Decimal
+  depositAmount    Decimal
+
+  status           OrderStatus        @default(PENDING_CONFIRMATION)
+
+  confirmations    Confirmation[]
+  paymentIntents   PaymentIntent[]
+  messageLogs      MessageLog[]
+
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([merchantId, createdAt])
+  @@index([externalOrderId])
+  @@index([status])
+}
+
+// Cycle de confirmation (message + clic + confirmation)
+model Confirmation {
+  id           String              @id @default(uuid())
+  orderId      String
+  order        Order               @relation(fields: [orderId], references: [id])
+
+  token        String              @unique
+  channel      Channel             @default(WHATSAPP)
+  status       ConfirmationStatus  @default(PENDING)
+
+  sentAt       DateTime?
+  clickedAt    DateTime?
+  confirmedAt  DateTime?
+  expiresAt    DateTime?
+
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([orderId])
+}
+
+// Logs de messages (WhatsApp)
+model MessageLog {
+  id                String           @id @default(uuid())
+  merchantId        String
+  merchant          Merchant         @relation(fields: [merchantId], references: [id])
+
+  orderId           String?
+  order             Order?           @relation(fields: [orderId], references: [id])
+
+  channel           Channel          @default(WHATSAPP)
+  providerMessageId String?
+  templateName      String?
+  direction         MessageDirection @default(OUTBOUND)
+  status            String?          // ex: "sent", "failed"
+  payloadJson       Json?
+
+  createdAt         DateTime         @default(now())
+
+  @@index([merchantId, createdAt])
+  @@index([orderId])
+}
+
+// Intention de paiement (micro-acompte)
+model PaymentIntent {
+  id                 String        @id @default(uuid())
+  orderId            String
+  order              Order         @relation(fields: [orderId], references: [id])
+
+  provider           String        @default("paytech")
+  providerPaymentId  String        @unique
+  amount             Decimal
+
+  status             PaymentStatus @default(PENDING)
+
+  rawRequest         Json?
+  rawResponse        Json?
+
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([orderId])
+}
+
+// Logs des webhooks entrants (PayTech, WhatsApp)
+model WebhookLog {
+  id           String   @id @default(uuid())
+  provider     String   // "paytech" | "whatsapp" | etc.
+  eventType    String?
+  payloadJson  Json
+  receivedAt   DateTime @default(now())
+  processed    Boolean  @default(false)
+  errorMessage String?
+}
+
+// Audit (optionnel au début, mais prêt pour RGPD)
+model AuditLog {
+  id          String    @id @default(uuid())
+  merchantId  String
+  merchant    Merchant  @relation(fields: [merchantId], references: [id])
+
+  actorType   ActorType
+  actorId     String?   // id du merchant ou null si system
+
+  action      String    // ex: "LOGIN", "CREATE_ORDER"
+  targetType  String?   // ex: "order", "merchant_settings"
+  targetId    String?
+
+  metadataJson Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([merchantId, createdAt])
+}
