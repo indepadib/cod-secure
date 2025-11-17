@@ -1,4 +1,4 @@
-import { prisma } from '../../lib/prisma';
+import { prisma } from 'app/lib/prisma';
 
 export async function GET() {
   const merchants = await prisma.merchant.findMany();
