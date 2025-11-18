@@ -96,34 +96,27 @@ model MerchantSettings {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
-
-// Commandes COD à sécuriser
 model Order {
-  id               String             @id @default(uuid())
-  merchantId       String
-  merchant         Merchant           @relation(fields: [merchantId], references: [id])
+  id             String   @id @default(uuid())
+  merchantId     String
+  merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
-  externalOrderId  String?            // ID venant du store, optionnel
-  customerName     String?
-  customerPhone    String?            // à anonymiser plus tard si besoin
+  externalOrderId  String?
+  customerName     String
+  customerPhone    String
   customerAddress  String?
 
-  totalAmount      Decimal
-  depositAmount    Decimal
+  totalAmount    Decimal @db.Decimal(10, 2)
+  depositAmount  Decimal @db.Decimal(10, 2)
 
-  status           OrderStatus        @default(PENDING_CONFIRMATION)
+  status         String   @default("PENDING")
 
-  confirmations    Confirmation[]
-  paymentIntents   PaymentIntent[]
-  messageLogs      MessageLog[]
-
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([merchantId, createdAt])
-  @@index([externalOrderId])
-  @@index([status])
 }
+
 
 // Cycle de confirmation (message + clic + confirmation)
 model Confirmation {
@@ -218,22 +211,3 @@ model AuditLog {
 
   @@index([merchantId, createdAt])
 }
-model Order {
-  id            String   @id @default(uuid())
-  merchantId    String
-  merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-
-  customerName  String
-  customerPhone String
-  productName   String
-
-  // IMPORTANT : Decimal pour matcher numeric(10,2) en DB
-  price         Decimal  @db.Decimal(10, 2)
-
-  status        String   @default("PENDING")
-
-  createdAt     DateTime @default(now())
-
-  @@index([merchantId, createdAt])
-}
-
