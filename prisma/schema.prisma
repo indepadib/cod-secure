@@ -218,7 +218,6 @@ model AuditLog {
 
   @@index([merchantId, createdAt])
 }
-
 model Order {
   id            String   @id @default(uuid())
   merchantId    String
@@ -227,7 +226,10 @@ model Order {
   customerName  String
   customerPhone String
   productName   String
-  price         Float
+
+  // IMPORTANT : Decimal pour matcher numeric(10,2) en DB
+  price         Decimal  @db.Decimal(10, 2)
+
   status        String   @default("PENDING")
 
   createdAt     DateTime @default(now())
