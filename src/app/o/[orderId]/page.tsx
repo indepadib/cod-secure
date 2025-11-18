@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+import ConfirmOrderButton from './ConfirmOrderButton';
 import { prisma } from '../../../lib/prisma';
 
 interface PublicOrderPageProps {
@@ -73,21 +74,7 @@ export default async function PublicOrderPage({ params }: PublicOrderPageProps) 
           <p>{order.status}</p>
         </div>
 
-        <div style={{ marginTop: 24 }}>
-          <button
-            disabled
-            style={{
-              width: '100%',
-              padding: 10,
-              borderRadius: 8,
-              border: 'none',
-              cursor: 'not-allowed',
-              opacity: 0.7,
-            }}
-          >
-            La confirmation sera activée à l’étape suivante
-          </button>
-        </div>
+        <ConfirmOrderButton orderId={order.id} initialStatus={order.status} />
       </div>
     </main>
   );
