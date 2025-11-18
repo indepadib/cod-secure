@@ -30,6 +30,11 @@ export default async function DashboardPage() {
     );
   }
 
+  const orders = await prisma.order.findMany({
+    where: { merchantId },
+    orderBy: { createdAt: 'desc' },
+  });
+
   return (
     <div style={{ padding: 40 }}>
       <h1>Dashboard COD-Secure</h1>
@@ -37,9 +42,46 @@ export default async function DashboardPage() {
         Connecté en tant que <strong>{merchant.businessName}</strong> ({merchant.email})
       </p>
 
-      <p style={{ marginTop: 24 }}>
-        (La section commandes arrive juste après, là on valide d’abord l’auth.)
-      </p>
+      <div style={{ marginTop: 24 }}>
+        <a href="/dashboard/create-order">
+          <button style={{ padding: 10, borderRadius: 8, border: 'none', cursor: 'pointer' }}>
+            Créer un ordre COD
+          </button>
+        </a>
+      </div>
+
+      <h2 style={{ marginTop: 32 }}>Vos ordres COD</h2>
+
+      {orders.length === 0 && <p>Aucun ordre pour le moment.</p>}
+
+      {orders.length > 0 && (
+        <table style={{ marginTop: 16, borderCollapse: 'collapse', minWidth: 600 }}>
+          <thead>
+            <tr>
+              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Client</th>
+              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Téléphone</th>
+              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Produit</th>
+              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Prix</th>
+              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Statut</th>
+              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Créé le</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map((o: any) => (
+              <tr key={o.id}>
+                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.customerName}</td>
+                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.customerPhone}</td>
+                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.productName}</td>
+                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.price} MAD</td>
+                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.status}</td>
+                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>
+                  {new Date(o.createdAt).toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
