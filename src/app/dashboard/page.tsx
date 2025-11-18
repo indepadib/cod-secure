@@ -1,12 +1,14 @@
-import { getCurrentMerchant } from '../../lib/auth';
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+import { cookies } from 'next/headers';
 import { prisma } from '../../lib/prisma';
 
-export const dynamic = 'force-dynamic';
-
 export default async function DashboardPage() {
-  const merchant = getCurrentMerchant();
+  const cookieStore = cookies();
+  const merchantId = cookieStore.get('merchantId')?.value;
 
-  if (!merchant) {
+  if (!merchantId) {
     return (
       <div style={{ padding: 40 }}>
         <h1>Non autorisé</h1>
@@ -15,19 +17,29 @@ export default async function DashboardPage() {
     );
   }
 
-  const orders = await prisma.order.findMany({
-    where: { merchantId: merchant.merchantId },
-    orderBy: { createdAt: 'desc' },
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
   });
+
+  if (!merchant) {
+    return (
+      <div style={{ padding: 40 }}>
+        <h1>Non autorisé</h1>
+        <p>Compte marchand introuvable.</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>Bienvenue, {merchant.email}</h1>
-      <p>Nombre d’ordres COD : {orders.length}</p>
+      <h1>Dashboard COD-Secure</h1>
+      <p>
+        Connecté en tant que <strong>{merchant.businessName}</strong> ({merchant.email})
+      </p>
 
-      <a href="/dashboard/create-order">
-        <button style={{ marginTop: 20 }}>Créer un ordre COD</button>
-      </a>
+      <p style={{ marginTop: 24 }}>
+        (La section commandes arrive juste après, là on valide d’abord l’auth.)
+      </p>
     </div>
   );
 }
