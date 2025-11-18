@@ -20,12 +20,15 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { customerName, customerPhone, productName, price } = body ?? {};
 
-    if (!customerName || !customerPhone || !productName || !price) {
+    if (!customerName || !customerPhone || !productName || price == null) {
       return NextResponse.json(
         { ok: false, error: 'Champs obligatoires manquants' },
         { status: 400 }
       );
     }
+
+    const totalAmount = Number(price);
+    const depositAmount = 0; // on mettra le micro-acompte plus tard
 
     const order = await prisma.order.create({
       data: {
@@ -33,7 +36,8 @@ export async function POST(req: Request) {
         customerName,
         customerPhone,
         productName,
-        price: Number(price),
+        totalAmount,
+        depositAmount,
         status: 'PENDING',
       },
     });
