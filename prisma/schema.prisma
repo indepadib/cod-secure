@@ -218,3 +218,20 @@ model AuditLog {
 
   @@index([merchantId, createdAt])
 }
+
+model Order {
+  id            String   @id @default(uuid())
+  merchantId    String
+  merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  customerName  String
+  customerPhone String
+  productName   String
+  price         Float
+  status        String   @default("PENDING")
+
+  createdAt     DateTime @default(now())
+
+  @@index([merchantId, createdAt])
+}
+
