@@ -30,17 +30,18 @@ export async function POST(req: Request) {
     const totalAmount = Number(price);
     const depositAmount = 0; // on mettra le micro-acompte plus tard
 
-    const order = await prisma.order.create({
-      data: {
-        merchantId,
-        customerName,
-        customerPhone,
-        productName,
-        totalAmount,
-        depositAmount,
-        status: 'PENDING',
-      },
-    });
+   const order = await prisma.order.create({
+  data: {
+    merchantId,
+    customerName,
+    customerPhone,
+    productName,     // ✅ maintenant Prisma connaît ce champ
+    totalAmount,
+    depositAmount,
+    status: 'PENDING',
+  },
+});
+
 
     return NextResponse.json({ ok: true, order });
   } catch (err: any) {
