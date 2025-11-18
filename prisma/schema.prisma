@@ -108,6 +108,8 @@ model Order {
   customerPhone    String
   customerAddress  String?
 
+  productName      String            // 🔹 AJOUT ICI
+
   totalAmount    Decimal @db.Decimal(10, 2)
   depositAmount  Decimal @db.Decimal(10, 2)
 
@@ -122,6 +124,7 @@ model Order {
 
   @@index([merchantId, createdAt])
 }
+
 
 
 
