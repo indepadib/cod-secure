@@ -57,29 +57,40 @@ export default async function DashboardPage() {
       {orders.length > 0 && (
         <table style={{ marginTop: 16, borderCollapse: 'collapse', minWidth: 600 }}>
           <thead>
-            <tr>
-              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Client</th>
-              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Téléphone</th>
-              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Produit</th>
-              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Prix</th>
-              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Statut</th>
-              <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Créé le</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((o: any) => (
-              <tr key={o.id}>
-                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.customerName}</td>
-                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.customerPhone}</td>
-                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.productName}</td>
-                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.price} MAD</td>
-                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.status}</td>
-                <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>
-                  {new Date(o.createdAt).toLocaleString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
+  <tr>
+    <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Client</th>
+    <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Téléphone</th>
+    <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Produit</th>
+    <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Prix</th>
+    <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Statut</th>
+    <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Créé le</th>
+    <th style={{ borderBottom: '1px solid #ddd', padding: 8 }}>Lien public</th>
+  </tr>
+</thead>
+<tbody>
+  {orders.map((o) => (
+    <tr key={o.id}>
+      <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.customerName}</td>
+      <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.customerPhone}</td>
+      <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.productName}</td>
+      <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.totalAmount} MAD</td>
+      <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{o.status}</td>
+      <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>
+        {new Date(o.createdAt).toLocaleString()}
+      </td>
+      <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>
+        <a
+          href={`/o/${o.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontSize: 12 }}
+        >
+          Ouvrir
+        </a>
+      </td>
+    </tr>
+  ))}
+</tbody>
         </table>
       )}
     </div>
