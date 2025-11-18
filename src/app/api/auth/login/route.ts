@@ -1,10 +1,10 @@
-export const dynamic = 'force-dynamic';
+ export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
-import jwt from 'jsonwebtoken';
 
 export async function POST(req: Request) {
   try {
@@ -32,30 +32,19 @@ export async function POST(req: Request) {
     const isValid = await bcrypt.compare(password, merchant.passwordHash);
 
     if (!isValid) {
-      const token = jwt.sign(
-  {
-    merchantId: merchant.id,
-    email: merchant.email,
-  },
-  process.env.SESSION_SECRET!,
-  { expiresIn: '7d' }
-);
-
-cookies().set('session', token, {
-  httpOnly: true,
-  maxAge: 60 * 60 * 24 * 7, // 7 days
-  path: '/',
-});
-
-return NextResponse.json({
-  ok: true,
-  merchant: {
-    id: merchant.id,
-    email: merchant.email,
-    businessName: merchant.businessName,
-  },
-});
+      return NextResponse.json(
+        { ok: false, error: 'Identifiants invalides' },
+        { status: 401 }
+      );
     }
+
+    // ✅ On pose un cookie simple avec l'id du marchand
+    const cookieStore = cookies();
+    cookieStore.set('merchantId', merchant.id, {
+      httpOnly: true,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 jours
+    });
 
     return NextResponse.json({
       ok: true,
