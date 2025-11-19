@@ -2,8 +2,16 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma';
 import { cookies } from 'next/headers';
+import { prisma } from '../../../../lib/prisma';
+import { sendOrderConfirmationWhatsApp } from '../../../../lib/whatsapp';
+
+interface CreateOrderBody {
+  customerName: string;
+  customerPhone: string;
+  productName: string;
+  price: number;
+}
 
 export async function POST(req: Request) {
   try {
@@ -17,31 +25,44 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const { customerName, customerPhone, productName, price } = body ?? {};
+    const body = (await req.json()) as Partial<CreateOrderBody>;
+    const { customerName, customerPhone, productName, price } = body;
 
-    if (!customerName || !customerPhone || !productName || price == null) {
+    if (!customerName || !customerPhone || !productName || !price) {
       return NextResponse.json(
-        { ok: false, error: 'Champs obligatoires manquants' },
+        { ok: false, error: 'Champs manquants' },
         { status: 400 }
       );
     }
 
-    const totalAmount = Number(price);
-    const depositAmount = 0; // on mettra le micro-acompte plus tard
+    // 1) Créer l’ordre en base
+    const order = await prisma.order.create({
+      data: {
+        merchantId,
+        customerName,
+        customerPhone,
+        productName,
+        totalAmount: price,
+        depositAmount: 0,
+        status: 'PENDING',
+      },
+    });
 
-   const order = await prisma.order.create({
-  data: {
-    merchantId,
-    customerName,
-    customerPhone,
-    productName,     // ✅ maintenant Prisma connaît ce champ
-    totalAmount,
-    depositAmount,
-    status: 'PENDING',
-  },
-});
+    // 2) Construire l’URL publique de confirmation
+    const baseUrl =
+      process.env.PUBLIC_BASE_URL || new URL(req.url).origin;
+    const confirmUrl = `${baseUrl}/o/${order.id}`;
 
+    // 3) Envoi WhatsApp (fire & forget)
+    sendOrderConfirmationWhatsApp({
+      customerName,
+      customerPhone,
+      productName,
+      totalAmount: price,
+      confirmUrl,
+    }).catch((err) => {
+      console.error('sendOrderConfirmationWhatsApp failed', err);
+    });
 
     return NextResponse.json({ ok: true, order });
   } catch (err: any) {
