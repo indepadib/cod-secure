@@ -31,12 +31,6 @@ export async function GET() {
     const orders = await prisma.order.findMany({
       where: { merchantId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        confirmations: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
     });
 
     return NextResponse.json({
