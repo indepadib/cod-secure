@@ -12,14 +12,9 @@ export async function POST(_req: Request, { params }: RouteContext) {
   const { orderId } = params;
 
   try {
+    // 1) Vérifier que la commande existe
     const existing = await prisma.order.findUnique({
       where: { id: orderId },
-      include: {
-        confirmations: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
     });
 
     if (!existing) {
@@ -29,8 +24,8 @@ export async function POST(_req: Request, { params }: RouteContext) {
       );
     }
 
-    // Si déjà confirmée, on ne recrée pas de double log
-    if (existing.status === 'CONFIRMED' && existing.confirmations.length > 0) {
+    // 2) Si déjà confirmée, on ne refait rien (idempotent)
+    if (existing.status === 'CONFIRMED') {
       return NextResponse.json({
         ok: true,
         order: existing,
@@ -38,25 +33,24 @@ export async function POST(_req: Request, { params }: RouteContext) {
       });
     }
 
-    const updated = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: 'CONFIRMED',
-        confirmations:
-          existing.confirmations.length === 0
-            ? {
-                create: {
-                  source: 'PUBLIC_LINK',
-                },
-              }
-            : undefined,
-      },
-      include: {
-        confirmations: true,
-      },
-    });
+    // 3) Transaction : update + log de confirmation
+    const [updatedOrder] = await prisma.$transaction([
+      prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'CONFIRMED',
+        },
+      }),
+      prisma.confirmation.create({
+        data: {
+          orderId: orderId,
+          source: 'PUBLIC_LINK',
+        },
+      }),
+    ]);
 
-    return NextResponse.json({ ok: true, order: updated });
+    // 4) Retourner la commande mise à jour
+    return NextResponse.json({ ok: true, order: updatedOrder });
   } catch (err: any) {
     console.error('API /orders/[orderId]/confirm error', err);
     return NextResponse.json(
