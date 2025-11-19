@@ -24,7 +24,7 @@ export async function POST(_req: Request, { params }: RouteContext) {
       );
     }
 
-    // 2) Si déjà confirmée, on ne refait rien (idempotent)
+    // 2) Si déjà confirmée → idempotent
     if (existing.status === 'CONFIRMED') {
       return NextResponse.json({
         ok: true,
@@ -33,23 +33,16 @@ export async function POST(_req: Request, { params }: RouteContext) {
       });
     }
 
-    // 3) Transaction : update + log de confirmation
-    const [updatedOrder] = await prisma.$transaction([
-      prisma.order.update({
-        where: { id: orderId },
-        data: {
-          status: 'CONFIRMED',
-        },
-      }),
-      prisma.confirmation.create({
-        data: {
-          orderId: orderId,
-          source: 'PUBLIC_LINK',
-        },
-      }),
-    ]);
+    // 3) Met à jour uniquement le statut (et updatedAt via Prisma/@updatedAt)
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: 'CONFIRMED',
+        // si tu n'as pas @updatedAt dans le schema, décommente :
+        // updatedAt: new Date(),
+      },
+    });
 
-    // 4) Retourner la commande mise à jour
     return NextResponse.json({ ok: true, order: updatedOrder });
   } catch (err: any) {
     console.error('API /orders/[orderId]/confirm error', err);
