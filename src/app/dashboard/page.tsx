@@ -20,8 +20,9 @@ type Order = {
   totalAmount: string | number;
   status: string;
   createdAt: string;
-  confirmations?: Confirmation[];
+  updatedAt: string;
 };
+
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -125,39 +126,33 @@ export default function DashboardPage() {
               <th style={th}>Lien public</th>
             </tr>
           </thead>
-          <tbody>
-            {orders.map((o) => {
-              const lastConfirmation = o.confirmations?.[0] ?? null;
-
-              return (
-                <tr key={o.id}>
-                  <td style={td}>{o.customerName}</td>
-                  <td style={td}>{o.customerPhone}</td>
-                  <td style={td}>{o.productName}</td>
-                  <td style={td}>
-                    {String(o.totalAmount)} MAD
-                  </td>
-                  <td style={td}>{o.status}</td>
-                  <td style={td}>
-                    {lastConfirmation
-                      ? new Date(lastConfirmation.createdAt).toLocaleString()
-                      : '-'}
-                  </td>
-                  <td style={td}>{new Date(o.createdAt).toLocaleString()}</td>
-                  <td style={td}>
-                    <a
-                      href={`/o/${o.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ fontSize: 12 }}
-                    >
-                      Ouvrir
-                    </a>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
+         <tbody>
+  {orders.map((o) => (
+    <tr key={o.id}>
+      <td style={td}>{o.customerName}</td>
+      <td style={td}>{o.customerPhone}</td>
+      <td style={td}>{o.productName}</td>
+      <td style={td}>{String(o.totalAmount)} MAD</td>
+      <td style={td}>{o.status}</td>
+      <td style={td}>
+        {o.status === 'CONFIRMED'
+          ? new Date(o.updatedAt).toLocaleString()
+          : '-'}
+      </td>
+      <td style={td}>{new Date(o.createdAt).toLocaleString()}</td>
+      <td style={td}>
+        <a
+          href={`/o/${o.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontSize: 12 }}
+        >
+          Ouvrir
+        </a>
+      </td>
+    </tr>
+  ))}
+</tbody>
         </table>
       )}
     </div>
