@@ -55,10 +55,10 @@ export default async function PublicOrderPage({ params }: PublicOrderPageProps) 
         <div style={{ marginTop: 16 }}>
           <h2 style={{ fontSize: 16, marginBottom: 4 }}>Montant</h2>
           <p>
-            Total : <strong>{order.totalAmount} MAD</strong>
+            Total : <strong>{order.totalAmount?.toString()} MAD</strong>
           </p>
           <p>
-            Acompte : <strong>{order.depositAmount} MAD</strong>
+            Acompte : <strong>{order.depositAmount?.toString()} MAD</strong>
           </p>
         </div>
 
