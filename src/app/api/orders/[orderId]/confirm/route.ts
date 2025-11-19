@@ -1,64 +1,45 @@
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-import { NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/prisma';
+import { NextResponse } from "next/server";
+import { prisma } from "../../../../lib/prisma";
 
-interface RouteContext {
-  params: { orderId: string };
-}
-
-export async function POST(_req: Request, { params }: RouteContext) {
-  const { orderId } = params;
-
+export async function POST(req, { params }) {
   try {
-    const existing = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        confirmations: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
+    const orderId = params.orderId;
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId }
     });
 
-    if (!existing) {
+    if (!order) {
       return NextResponse.json(
-        { ok: false, error: 'Commande introuvable' },
+        { ok: false, error: "Commande introuvable" },
         { status: 404 }
       );
     }
 
-    // Si déjà confirmée, on ne refait rien (idempotent)
-    if (existing.status === 'CONFIRMED') {
-      return NextResponse.json({
-        ok: true,
-        order: existing,
-        message: 'Commande déjà confirmée',
-      });
-    }
-
-    // 1) Met à jour le statut
-    const updatedOrder = await prisma.order.update({
+    // Mise à jour + log Confirmation
+    const updated = await prisma.order.update({
       where: { id: orderId },
       data: {
-        status: 'CONFIRMED',
+        status: "CONFIRMED",
+        confirmations: {
+          create: {
+            source: "PUBLIC_LINK"
+          }
+        }
       },
+      include: {
+        confirmations: true
+      }
     });
 
-    // 2) Crée un log de confirmation (si pas déjà existant pour cette source)
-    await prisma.confirmation.create({
-      data: {
-        orderId: orderId,
-        source: 'PUBLIC_LINK',
-      },
-    });
-
-    return NextResponse.json({ ok: true, order: updatedOrder });
-  } catch (err: any) {
-    console.error('API /orders/[orderId]/confirm error', err);
+    return NextResponse.json({ ok: true, order: updated });
+  } catch (err) {
+    console.error("CONFIRM ERROR:", err);
     return NextResponse.json(
-      { ok: false, error: 'Erreur serveur', details: err?.message ?? null },
+      { ok: false, error: "Erreur serveur", details: err.message },
       { status: 500 }
     );
   }
