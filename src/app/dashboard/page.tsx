@@ -95,7 +95,7 @@ export default async function DashboardPage() {
                   <td style={td}>{o.customerName}</td>
                   <td style={td}>{o.customerPhone}</td>
                   <td style={td}>{o.productName}</td>
-                  <td style={td}>{o.totalAmount} MAD</td>
+                  <td style={td}>{o.totalAmount.toString()} MAD</td>
                   <td style={td}>{o.status}</td>
                   <td style={td}>
                     {o.confirmations.length === 0
