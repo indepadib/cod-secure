@@ -131,23 +131,11 @@ model Order {
 
 // Cycle de confirmation (message + clic + confirmation)
 model Confirmation {
-  id           String              @id @default(uuid())
-  orderId      String
-  order        Order               @relation(fields: [orderId], references: [id])
-
-  token        String              @unique
-  channel      Channel             @default(WHATSAPP)
-  status       ConfirmationStatus  @default(PENDING)
-
-  sentAt       DateTime?
-  clickedAt    DateTime?
-  confirmedAt  DateTime?
-  expiresAt    DateTime?
-
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-
-  @@index([orderId])
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  source    String   @default("PUBLIC_LINK")
+  createdAt DateTime @default(now())
 }
 
 // Logs de messages (WhatsApp)
