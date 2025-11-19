@@ -1,17 +1,21 @@
 const WHATSAPP_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const WHATSAPP_TEMPLATE_NAME = process.env.WHATSAPP_TEMPLATE_NAME ?? 'cod_secure_confirmation';
+const WHATSAPP_TEMPLATE_NAME =
+  process.env.WHATSAPP_TEMPLATE_NAME ?? 'hello_world';
 
-// conversion très simple Maroc : 06xx → 2126xx
-function toInternationalMorocco(msisdn: string): string {
+// Conversion rapide pour numéros marocains (ou autres)
+// 06xx → 2126xx, 07xx → 2127xx, etc.
+function toInternationalMsisdn(msisdn: string): string {
   const digits = msisdn.replace(/\D/g, '');
+
   if (digits.startsWith('0')) {
+    // suppose que c'est un numéro marocain local
     return '212' + digits.slice(1);
   }
   if (digits.startsWith('212')) {
     return digits;
   }
-  // fallback : on considère que c'est déjà en intl
+  // fallback : déjà en format international
   return digits;
 }
 
@@ -27,11 +31,13 @@ export async function sendOrderConfirmationWhatsApp(
   payload: WhatsappOrderPayload
 ): Promise<void> {
   if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
-    console.warn('WhatsApp non configuré (missing env vars), envoi ignoré.');
+    console.warn(
+      'WhatsApp non configuré (WHATSAPP_TOKEN ou PHONE_NUMBER_ID manquant), envoi ignoré.'
+    );
     return;
   }
 
-  const to = toInternationalMorocco(payload.customerPhone);
+  const to = toInternationalMsisdn(payload.customerPhone);
 
   const body = {
     messaging_product: 'whatsapp',
@@ -39,22 +45,19 @@ export async function sendOrderConfirmationWhatsApp(
     type: 'template',
     template: {
       name: WHATSAPP_TEMPLATE_NAME,
-      language: { code: 'fr' },
+      language: { code: 'en_US' }, // pour hello_world
       components: [
         {
           type: 'body',
           parameters: [
-            { type: 'text', text: payload.customerName },
-            { type: 'text', text: payload.productName },
-            { type: 'text', text: `${payload.totalAmount} MAD` },
-            { type: 'text', text: payload.confirmUrl },
+            { type: 'text', text: payload.customerName || 'client' },
           ],
         },
       ],
     },
   };
 
-  const url = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const url = `https://graph.facebook.com/v22.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -68,6 +71,6 @@ export async function sendOrderConfirmationWhatsApp(
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
     console.error('Erreur envoi WhatsApp', res.status, txt);
-    // on ne throw PAS : l’ordre reste créé, on log juste l’erreur.
+    // On ne throw pas : on ne casse pas le flux métier
   }
 }
