@@ -14,6 +14,12 @@ export async function POST(_req: Request, { params }: RouteContext) {
   try {
     const existing = await prisma.order.findUnique({
       where: { id: orderId },
+      include: {
+        confirmations: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
     });
 
     if (!existing) {
@@ -32,14 +38,23 @@ export async function POST(_req: Request, { params }: RouteContext) {
       });
     }
 
-    const updated = await prisma.order.update({
+    // 1) Met à jour le statut
+    const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
         status: 'CONFIRMED',
       },
     });
 
-    return NextResponse.json({ ok: true, order: updated });
+    // 2) Crée un log de confirmation (si pas déjà existant pour cette source)
+    await prisma.confirmation.create({
+      data: {
+        orderId: orderId,
+        source: 'PUBLIC_LINK',
+      },
+    });
+
+    return NextResponse.json({ ok: true, order: updatedOrder });
   } catch (err: any) {
     console.error('API /orders/[orderId]/confirm error', err);
     return NextResponse.json(
